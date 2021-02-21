@@ -87,6 +87,11 @@ urlpatterns = [
         name='api_geojson_location_list_contained_in_tile_filter',
     ),
     url(
+        r'^filters/contained_in_tile/(?P<z>\d+)/(?P<x>\d+)/(?P<y>\d+)$',
+        views.geojson_location_contained_in_tile_list,
+        name='api_geojson_location_list_contained_in_tile_filter_keyword_args',
+    ),
+    url(
         r'^filters/overlaps_tile$',
         views.geojson_location_overlaps_tile_list,
         name='api_geojson_location_list_overlaps_tile_filter',

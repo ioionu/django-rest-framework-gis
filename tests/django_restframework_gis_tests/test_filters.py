@@ -46,6 +46,10 @@ class TestRestFrameworkGisFilters(TestCase):
         self.location_contained_in_tile_list_url = reverse(
             'api_geojson_location_list_contained_in_tile_filter'
         )
+        self.location_contained_in_tile_list_keyword_args_url = reverse(
+            'api_geojson_location_list_contained_in_tile_filter_keyword_args',
+            kwargs={'z': 1, 'x': 1, 'y': 0},
+        )
         self.location_overlaps_tile_list_url = reverse(
             'api_geojson_location_list_overlaps_tile_filter'
         )
@@ -268,6 +272,51 @@ class TestRestFrameworkGisFilters(TestCase):
                 result['properties']['name']
                 in ('isContained', 'isEqualToBounds', 'overlaps'),
                 True,
+            )
+
+    @skipIf(has_spatialite, 'Skipped test for spatialite backend: not accurate enough')
+    def test_TileFilter_filtering_keyword_args(self):
+        """
+        Checks that the TMSTileFilter returns only objects strictly contained
+        in the bounding box given by the tile URL parameter
+        """
+        self.assertEqual(Location.objects.count(), 0)
+
+        # Square with bottom left at (1,1), top right at (9,9)
+        isContained = Location()
+        isContained.name = 'isContained'
+        isContained.geometry = Polygon(((1, 1), (9, 1), (9, 9), (1, 9), (1, 1)))
+        isContained.save()
+
+        isEqualToBounds = Location()
+        isEqualToBounds.name = 'isEqualToBounds'
+        isEqualToBounds.geometry = Polygon(
+            ((0, 0), (0, 85.05113), (180, 85.05113), (180, 0), (0, 0))
+        )
+        isEqualToBounds.save()
+
+        # Rectangle with bottom left at (-1,1), top right at (5,5)
+        overlaps = Location()
+        overlaps.name = 'overlaps'
+        overlaps.geometry = Polygon(((-1, 1), (5, 1), (5, 5), (-1, 5), (-1, 1)))
+        overlaps.save()
+
+        # Rectangle with bottom left at (-3,-3), top right at (-1,2)
+        nonIntersecting = Location()
+        nonIntersecting.name = 'nonIntersecting'
+        nonIntersecting.geometry = Polygon(
+            ((-3, -3), (-1, -3), (-1, 2), (-3, 2), (-3, -3))
+        )
+        nonIntersecting.save()
+
+        # Make sure we only get back the ones strictly contained in the bounding box
+        response = self.client.get(
+            self.location_contained_in_tile_list_keyword_args_url
+        )
+        self.assertEqual(len(response.data['features']), 2)
+        for result in response.data['features']:
+            self.assertEqual(
+                result['properties']['name'] in ('isContained', 'isEqualToBounds'), True
             )
 
     @skipIf(

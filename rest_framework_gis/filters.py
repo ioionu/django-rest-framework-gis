@@ -136,7 +136,7 @@ class TMSTileFilter(InBBoxFilter):
 
         # Attempt to extract and validate z,x and y keyword arguments.
         kwargs = request.resolver_match.kwargs
-        if 'y' in kwargs and 'x' in kwargs and 'y' in kwargs:
+        if 'z' in kwargs and 'x' in kwargs and 'y' in kwargs:
             try:
                 z, x, y = (int(kwargs[k]) for k in ['z', 'x', 'y'])
             except ValueError:
@@ -167,8 +167,7 @@ class TMSTileFilter(InBBoxFilter):
                 "name": self.tile_param,
                 "required": False,
                 "in": "query",
-                "description": """Specify a bounding box filter defined by a TMS
-                tile address: tile=Z/X/Y or path including /{z}/{x}/{y}""",
+                "description": "Specify a bounding box filter defined by a TMS tile address: tile=Z/X/Y",
                 "schema": {"type": "string", "example": "12/56/34"},
             },
         ]
