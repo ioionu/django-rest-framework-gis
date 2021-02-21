@@ -130,19 +130,33 @@ class GeoFilterSet(django_filters.FilterSet):
 
 
 class TMSTileFilter(InBBoxFilter):
-    tile_param = 'tile'  # The URL query parameter which contains the tile address
+    tile_param = 'tile'  # The URL query paramater which contains the tile address
 
     def get_filter_bbox(self, request):
-        tile_string = request.query_params.get(self.tile_param, None)
-        if not tile_string:
-            return None
 
-        try:
-            z, x, y = (int(n) for n in tile_string.split('/'))
-        except ValueError:
-            raise ParseError(
-                'Invalid tile string supplied for parameter {0}'.format(self.tile_param)
-            )
+        # Attempt to extract and validate z,x and y keyword arguments.
+        kwargs = request.resolver_match.kwargs
+        if 'y' in kwargs and 'x' in kwargs and 'y' in kwargs:
+            try:
+                z, x, y = (int(kwargs[k]) for k in ['z', 'x', 'y'])
+            except ValueError:
+                raise ParseError(
+                    'Invalid keyword arguments supplied for tile: {0}'.format(kwargs)
+                )
+        # If no keyword argument attempt to parse z, x and y from params.
+        else:
+            tile_string = request.query_params.get(self.tile_param, None)
+            if not tile_string:
+                return None
+
+            try:
+                z, x, y = (int(n) for n in tile_string.split('/'))
+            except ValueError:
+                raise ParseError(
+                    'Invalid tile string supplied for parameter {0}'.format(
+                        self.tile_param
+                    )
+                )
 
         bbox = Polygon.from_bbox(tile_edges(x, y, z))
         return bbox
@@ -153,7 +167,8 @@ class TMSTileFilter(InBBoxFilter):
                 "name": self.tile_param,
                 "required": False,
                 "in": "query",
-                "description": "Specify a bounding box filter defined by a TMS tile address: tile=Z/X/Y",
+                "description": """Specify a bounding box filter defined by a TMS
+                tile address: tile=Z/X/Y or path including /{z}/{x}/{y}""",
                 "schema": {"type": "string", "example": "12/56/34"},
             },
         ]
